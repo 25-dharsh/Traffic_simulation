@@ -14,9 +14,9 @@
         <gui-settings-file value="gui_settings.xml"/>
 
         <!-- vehicle_types.xml MUST be first — prevents "ambulance is not known" error -->
-        <route-files value="../routes/vehicle_types.xml,../routes/routes.rou.xml"/>
+        <route-files value="../routes/vehicle_types.xml,../routes/dynamic_routes.rou.xml,../routes/bus_routes.rou.xml,../routes/pedestrian_routes.rou.xml"/>
 
-        <additional-files value="../data/buildings/buildings.poly.xml,../traffic_lights/tls.add.xml,../detectors/detectors.add.xml"/>
+        <additional-files value="../data/buildings/buildings.poly.xml,../additional/bus_stops.add.xml,../traffic_lights/tls.add.xml,../detectors/detectors.add.xml"/>
     </input>
 
     <time>

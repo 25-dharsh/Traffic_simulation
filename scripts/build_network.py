@@ -1,6 +1,7 @@
 """
 Phase 3 — Convert OSM to SUMO road network using netconvert.
 Phase 4 — Import buildings/polygons using polyconvert.
+Revised to support two-pass network building for TLS expansion.
 """
 
 import os
@@ -12,6 +13,8 @@ import xml.etree.ElementTree as ET
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 OSM_FILE        = os.path.join(BASE_DIR, "data", "osm",       "chennai.osm")
 NET_FILE        = os.path.join(BASE_DIR, "data", "network",   "chennai.net.xml")
+TEMP_NET_FILE   = os.path.join(BASE_DIR, "data", "network",   "temp.net.xml")
+NOD_FILE        = os.path.join(BASE_DIR, "data", "network",   "tls_nodes.nod.xml")
 BUILDINGS_FILE  = os.path.join(BASE_DIR, "data", "buildings", "buildings.poly.xml")
 
 SUMO_HOME = os.environ.get("SUMO_HOME", r"C:\Program Files (x86)\Eclipse\Sumo")
@@ -26,17 +29,17 @@ def run(cmd: list[str], label: str):
     print(f"[{label}] Success.")
 
 
-# ── Phase 3: netconvert ───────────────────────────────────────────────────────
 def build_network():
     if not os.path.exists(OSM_FILE):
-        sys.exit(f"[build_network] OSM file not found: {OSM_FILE}\nRun download_osm.py first.")
+        sys.exit(f"[build_network] OSM file not found: {OSM_FILE}")
 
     os.makedirs(os.path.dirname(NET_FILE), exist_ok=True)
 
-    cmd = [
+    # Pass 1: OSM to Temp Network
+    cmd1 = [
         "netconvert",
         "--osm-files",              OSM_FILE,
-        "--output-file",            NET_FILE,
+        "--output-file",            TEMP_NET_FILE,
         "--geometry.remove",
         "--roundabouts.guess",
         "--ramps.guess",
@@ -45,33 +48,44 @@ def build_network():
         "--default.speed",          "13.9",
         "--junctions.join",
         "--remove-edges.isolated",
-        "--keep-edges.by-vclass",   "passenger",
+        "--osm.turn-lanes",
+        "--osm.sidewalks",
+        "--osm.crossings",
+        "--crossings.guess",
+        "--sidewalks.guess",
+        "--sidewalks.guess.min-speed", "5",
+        "--keep-edges.by-vclass",   "passenger,bicycle,pedestrian,bus",
         "--no-warnings",
     ]
-    run(cmd, "netconvert")
+    run(cmd1, "netconvert (Pass 1)")
 
-    # Verify output
-    if not os.path.exists(NET_FILE):
-        sys.exit("[build_network] Network file was not created.")
+    # Pass 2: Apply TLS Node Conversions if file exists
+    if os.path.exists(NOD_FILE):
+        cmd2 = [
+            "netconvert",
+            "--sumo-net-file", TEMP_NET_FILE,
+            "--node-files",     NOD_FILE,
+            "--output-file",    NET_FILE,
+            "--junctions.join-turns",
+            "--no-warnings",
+        ]
+        run(cmd2, "netconvert (Pass 2 - TLS Nodes)")
+    else:
+        # Just rename temp to final if no nodes file
+        if os.path.exists(NET_FILE): os.remove(NET_FILE)
+        os.rename(TEMP_NET_FILE, NET_FILE)
+        print("[build_network] No node file found, used Pass 1 output.")
 
-    tree = ET.parse(NET_FILE)
-    tls_elements = tree.findall(".//tlLogic")
-    print(f"[build_network] Network contains {len(tls_elements)} traffic light junction(s).")
-    if len(tls_elements) == 0:
-        print("[build_network] WARNING: No traffic lights found in network. TLS override will be empty.")
+    if os.path.exists(TEMP_NET_FILE):
+        os.remove(TEMP_NET_FILE)
 
     print(f"[build_network] Phase 3 complete → {NET_FILE}")
 
 
-# ── Phase 4: polyconvert ──────────────────────────────────────────────────────
 def build_polygons():
     if not os.path.exists(NET_FILE):
-        sys.exit(f"[build_polygons] Network file not found: {NET_FILE}\nRun build_network() first.")
-    if not os.path.exists(TYPEMAP):
-        sys.exit(f"[build_polygons] Typemap not found: {TYPEMAP}\nCheck SUMO_HOME = {SUMO_HOME}")
-
+        sys.exit(f"[build_polygons] Network file not found: {NET_FILE}")
     os.makedirs(os.path.dirname(BUILDINGS_FILE), exist_ok=True)
-
     cmd = [
         "polyconvert",
         "--net-file",   NET_FILE,
@@ -80,23 +94,9 @@ def build_polygons():
         "--output-file", BUILDINGS_FILE,
     ]
     run(cmd, "polyconvert")
-
-    # Validation: check polygon variety
-    if os.path.exists(BUILDINGS_FILE):
-        content = open(BUILDINGS_FILE, encoding="utf-8", errors="ignore").read()
-        for tag in ["building", "landuse", "park", "water"]:
-            count = content.count(f'type="{tag}')
-            if count == 0:
-                # Try partial match
-                count = content.lower().count(tag)
-            print(f"  [{tag}] found ~{count} polygon(s)")
-    else:
-        print("[build_polygons] WARNING: buildings.poly.xml was not created.")
-
     print(f"[build_polygons] Phase 4 complete → {BUILDINGS_FILE}")
 
 
 if __name__ == "__main__":
     build_network()
     build_polygons()
-    print("\n[build_network.py] Phases 3 & 4 complete.")

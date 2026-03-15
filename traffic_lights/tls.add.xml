@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <additional>
   <tlLogic id="10594234677" type="static" programID="SA_fixed" offset="0">
-    <phase duration="30" state="GGGrr" />
-    <phase duration="5" state="yyyrr" />
-    <phase duration="30" state="rrrGG" />
-    <phase duration="5" state="rrryy" />
+    <phase duration="30" state="rrrrGggGGg" />
+    <phase duration="5" state="rrrryyyyyy" />
+    <phase duration="30" state="GGGGrrrrrr" />
+    <phase duration="5" state="yyyyrrrrrr" />
   </tlLogic>
   <tlLogic id="2001005468" type="static" programID="SA_fixed" offset="0">
     <phase duration="30" state="Gr" />
@@ -48,10 +48,11 @@
     <phase duration="30" state="rr" />
   </tlLogic>
   <tlLogic id="277439021" type="static" programID="SA_fixed" offset="0">
-    <phase duration="30" state="GGGrr" />
-    <phase duration="5" state="yyyrr" />
-    <phase duration="30" state="rrrGG" />
-    <phase duration="5" state="rrryy" />
+    <phase duration="30" state="GGgrrrrGggr" />
+    <phase duration="5" state="yyyrrrryyyr" />
+    <phase duration="30" state="rrrgGGGrrrG" />
+    <phase duration="30" state="rrrgGGGrrrr" />
+    <phase duration="5" state="rrryyyyrrrr" />
   </tlLogic>
   <tlLogic id="277439414" type="static" programID="SA_fixed" offset="0">
     <phase duration="30" state="GGGrr" />

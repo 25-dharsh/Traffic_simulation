@@ -10,6 +10,8 @@ import time
 import subprocess
 import traceback
 import csv
+import random
+import json
 
 # ── SUMO/TraCI setup ──────────────────────────────────────────────────────────
 SUMO_HOME = os.environ.get("SUMO_HOME", r"C:\Program Files (x86)\Eclipse\Sumo")
@@ -36,10 +38,14 @@ REQUIRED_FILES = [
     os.path.join(BASE_DIR, "data", "osm",       "chennai.osm"),
     os.path.join(BASE_DIR, "data", "network",   "chennai.net.xml"),
     os.path.join(BASE_DIR, "routes",             "vehicle_types.xml"),
-    os.path.join(BASE_DIR, "routes",             "routes.rou.xml"),
+    os.path.join(BASE_DIR, "routes",             "dynamic_routes.rou.xml"),
+    os.path.join(BASE_DIR, "routes",             "bus_routes.rou.xml"),
+    os.path.join(BASE_DIR, "routes",             "pedestrian_routes.rou.xml"),
     os.path.join(BASE_DIR, "traffic_lights",     "tls.add.xml"),
+    os.path.join(BASE_DIR, "data", "network",    "tls_nodes.nod.xml"),
     os.path.join(BASE_DIR, "data", "buildings",  "buildings.poly.xml"),
     os.path.join(BASE_DIR, "detectors",          "detectors.add.xml"),
+    os.path.join(BASE_DIR, "additional",         "bus_stops.add.xml"),
     CFG_FILE,
 ]
 
@@ -107,7 +113,66 @@ def generate_graphs():
         print(f"[graphs] Error: {e}")
         traceback.print_exc()
 
+# ── Incident Management ────────────────────────────────────────────────────────
+_incident_logs = []
 
+def apply_random_incident(step: int):
+    """Introduce a random traffic incident."""
+    try:
+        edges = traci.edge.getIDList()
+        # Filter out internal/junction edges
+        valid_edges = [e for e in edges if not e.startswith(":")]
+        if not valid_edges:
+            return
+
+        edge_id = random.choice(valid_edges)
+        incident_type = random.choice(["stalled_vehicle", "blocked_lane", "reduced_speed"])
+        
+        description = ""
+        
+        if incident_type == "stalled_vehicle":
+            vehs = traci.edge.getLastStepVehicleIDs(edge_id)
+            if vehs:
+                target_veh = random.choice(vehs)
+                # Force vehicle to stop for 120 seconds
+                traci.vehicle.setStop(target_veh, edge_id, pos=10.0, duration=120)
+                description = f"Vehicle {target_veh} stalled on {edge_id}"
+            else:
+                incident_type = "stalled_attempt_failed"
+                description = f"Attempted stall on {edge_id} but no vehicles found"
+                
+        elif incident_type == "blocked_lane":
+            lanes = traci.edge.getLaneNumber(edge_id)
+            target_lane = f"{edge_id}_{random.randint(0, lanes-1)}"
+            # Block the lane by setting disallowed to everything
+            traci.lane.setDisallowed(target_lane, ["passenger", "bus", "truck", "motorcycle", "bicycle"])
+            description = f"Lane {target_lane} manually blocked"
+            
+        elif incident_type == "reduced_speed":
+            # Reduce speed to 2.0 m/s (approx 7 km/h)
+            traci.edge.setMaxSpeed(edge_id, 2.0)
+            description = f"Speed limit on {edge_id} reduced to 2.0m/s (Incident)"
+
+        _incident_logs.append({
+            "step": step,
+            "type": incident_type,
+            "edge": edge_id,
+            "description": description
+        })
+        print(f"  [INCIDENT] {description} at step {step}")
+        
+    except Exception as e:
+        print(f"  [incident error] {e}")
+
+def export_incident_logs():
+    """Save incident history to CSV."""
+    csv_path = os.path.join(METRICS_DIR, "incident_logs.csv")
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["step", "type", "edge", "description"])
+        for log in _incident_logs:
+            writer.writerow([log["step"], log["type"], log["edge"], log["description"]])
+    print(f"[export] Incident logs → {csv_path}")
 # ─────────────────────────────────────────────────────────────────────────────
 def run_simulation():
     """
@@ -138,6 +203,9 @@ def run_simulation():
             traci.simulationStep()
             step += 1
 
+            if step % 600 == 0:
+                apply_random_incident(step)
+
             if step % METRICS_INTERVAL == 0:
                 n_veh   = len(traci.vehicle.getIDList())
                 elapsed = time.time() - start_wall
@@ -164,6 +232,7 @@ def run_simulation():
         except Exception:
             pass
         export_metrics()
+        export_incident_logs()
         generate_graphs()
         elapsed_total = time.time() - start_wall
         print(f"\n[run_simulation] Total wall time: {elapsed_total:.1f}s")

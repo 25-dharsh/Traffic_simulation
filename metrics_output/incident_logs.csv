@@ -1,0 +1,7 @@
+step,type,edge,description
+600,blocked_lane,27190026#2,Lane 27190026#2_0 manually blocked
+1200,stalled_attempt_failed,-184913342,Attempted stall on -184913342 but no vehicles found
+1800,blocked_lane,-1114825835#1,Lane -1114825835#1_1 manually blocked
+2400,blocked_lane,-27346864,Lane -27346864_1 manually blocked
+3000,reduced_speed,-25466310#8,Speed limit on -25466310#8 reduced to 2.0m/s (Incident)
+3600,blocked_lane,1249830038,Lane 1249830038_0 manually blocked

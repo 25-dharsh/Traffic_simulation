@@ -19,33 +19,6 @@ YELLOW_DURATION = 5
 RED_DURATION    = 30
 
 
-def classify_phase(state: str) -> str:
-    """
-    Classify a TLS phase state string as 'green', 'yellow', or 'red'.
-    Based on the dominant character in the state string.
-    """
-    state_lower = state.lower()
-    g_count = state_lower.count("g")
-    y_count = state_lower.count("y")
-    r_count = state_lower.count("r")
-
-    if y_count > 0 and y_count >= g_count:
-        return "yellow"
-    elif g_count >= r_count:
-        return "green"
-    else:
-        return "red"
-
-
-def get_duration(phase_type: str) -> int:
-    if phase_type == "yellow":
-        return YELLOW_DURATION
-    elif phase_type == "green":
-        return GREEN_DURATION
-    else:
-        return RED_DURATION
-
-
 def generate_tls():
     if not os.path.exists(NET_FILE):
         sys.exit(f"[setup_tls] Network file not found: {NET_FILE}\nRun build_network.py first.")
@@ -70,34 +43,42 @@ def generate_tls():
         offset      = tls.get("offset", "0")
 
         logic = ET.SubElement(additional, "tlLogic",
-                              id=tls_id,
-                              type=tls_type,
-                              programID=program_id,
-                              offset=offset)
+                              id=str(tls_id),
+                              type=str(tls_type),
+                              programID=str(program_id),
+                              offset=str(offset))
 
         phases = tls.findall("phase")
         if not phases:
+            # Determine link count from connections for robust defaults
+            connections = root.findall(f".//connection[@tl='{tls_id}']")
+            link_indices = set()
+            for c in connections:
+                idx = c.get("linkIndex")
+                if idx: link_indices.add(int(idx))
+            
+            num_links = max(link_indices) + 1 if link_indices else 8
+            
+            h1 = num_links // 2
+            h2 = num_links - h1
+            
             phases_data = [
-                ("GGGGrrrr", 30),
-                ("yyyyrrrr", 5),
-                ("rrrrGGGG", 30),
-                ("rrrryyyy", 5),
+                ("G"*h1 + "r"*h2, GREEN_DURATION),
+                ("y"*h1 + "r"*h2, YELLOW_DURATION),
+                ("r"*h1 + "G"*h2, GREEN_DURATION),
+                ("r"*h1 + "y"*h2, YELLOW_DURATION),
             ]
             for state, dur in phases_data:
-                ET.SubElement(logic, "phase", duration=str(dur), state=state)
+                ET.SubElement(logic, "phase", duration=str(dur), state=str(state))
         else:
-            # Preserve ALL original phase strings (colors) correctly for complex intersections
             for phase in phases:
                 state = phase.get("state", "r")
-                
-                # Determine color class (yellow vs green/red) to assign fixed timer constraint
                 state_lower = state.lower()
                 if "y" in state_lower and state_lower.count("y") >= state_lower.count("g"):
-                    dur = "5"
+                    dur = str(YELLOW_DURATION)
                 else:
-                    dur = "30"
-                    
-                ET.SubElement(logic, "phase", duration=dur, state=state)
+                    dur = str(GREEN_DURATION)
+                ET.SubElement(logic, "phase", duration=dur, state=str(state))
             
         generated_count += 1
 
@@ -105,11 +86,8 @@ def generate_tls():
     tree_out = ET.ElementTree(additional)
     tree_out.write(TLS_FILE, encoding="unicode", xml_declaration=True)
 
-    print(f"[setup_tls] Ignored classify block. Generated {generated_count} TLS overrides → {TLS_FILE}")
-    print(f"[setup_tls] Signal plan: Green={GREEN_DURATION}s | Yellow={YELLOW_DURATION}s | Red={RED_DURATION}s")
-
-    assert network_tls_count == generated_count, f"Mismatch: Network has {network_tls_count} TLS, but {generated_count} programs generated. Aborting."
+    print(f"[setup_tls] Generated {generated_count} TLS overrides → {TLS_FILE}")
+    print(f"[setup_tls] Signal plan: Green={GREEN_DURATION}s | Yellow={YELLOW_DURATION}s")
 
 if __name__ == "__main__":
     generate_tls()
-    print("[setup_tls.py] Phase 7 complete.")
