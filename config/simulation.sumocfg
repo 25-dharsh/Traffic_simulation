@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Scenario A — SUMO Simulation Configuration
+    Chennai City-Scale Fixed Timer Traffic Signal Simulation
+
+    Load order matters:
+      route-files: vehicle_types.xml FIRST (registers ambulance vType before routes)
+      additional-files: buildings → tls overrides → detectors
+-->
+<configuration>
+
+    <input>
+        <net-file value="../data/network/chennai.net.xml"/>
+        <gui-settings-file value="gui_settings.xml"/>
+
+        <!-- vehicle_types.xml MUST be first — prevents "ambulance is not known" error -->
+        <route-files value="../routes/vehicle_types.xml,../routes/routes.rou.xml"/>
+
+        <additional-files value="../data/buildings/buildings.poly.xml,../traffic_lights/tls.add.xml,../detectors/detectors.add.xml"/>
+    </input>
+
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+        <step-length value="1"/>
+    </time>
+
+    <processing>
+        <!-- Disable teleporting — blocked vehicles stay visible (congestion demo) -->
+        <time-to-teleport value="-1"/>
+
+        <!-- Don't crash on bad routes from duarouter -->
+        <ignore-route-errors value="true"/>
+
+        <!-- Check collisions at junctions -->
+        <collision.check-junctions value="true"/>
+    </processing>
+
+    <output>
+        <tripinfo-output value="../metrics_output/tripinfo.xml"/>
+        <summary-output value="../metrics_output/summary.xml"/>
+    </output>
+
+    <report>
+        <no-step-log value="true"/>
+        <verbose value="true"/>
+    </report>
+
+</configuration>

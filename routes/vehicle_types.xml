@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Vehicle type definitions for Chennai City-Scale SUMO Simulation (Scenario A)
+    Loaded FIRST in route-files to prevent "ambulance is not known" TraCI errors.
+    speedFactor="normc(1,0.1,0.2,2)" adds realistic speed variation per vehicle.
+    jmIgnoreFoeProb="0" and jmIgnoreJunction="0" force strict traffic signal compliance.
+-->
+<routes>
+
+    <!-- ── Passenger Car ───────────────────────────────────────────────── -->
+    <vType id="car"
+           length="5"
+           maxSpeed="16"
+           accel="2.6"
+           decel="4.5"
+           sigma="0.5"
+           speedFactor="normc(1,0.1,0.2,2)"
+           jmIgnoreFoeProb="0"
+           jmIgnoreJunction="0"
+           color="255,220,0"
+           vClass="passenger"/>
+
+    <!-- ── Motorbike / Two-Wheeler ────────────────────────────────────── -->
+    <vType id="bike"
+           length="2"
+           maxSpeed="18"
+           accel="3.5"
+           decel="5.0"
+           sigma="0.6"
+           speedFactor="normc(1,0.1,0.2,2)"
+           jmIgnoreFoeProb="0"
+           jmIgnoreJunction="0"
+           color="100,149,237"
+           vClass="motorcycle"/>
+
+    <!-- ── City Bus ───────────────────────────────────────────────────── -->
+    <vType id="bus"
+           length="12"
+           maxSpeed="12"
+           accel="1.2"
+           decel="3.0"
+           sigma="0.3"
+           speedFactor="normc(1,0.1,0.2,2)"
+           jmIgnoreFoeProb="0"
+           jmIgnoreJunction="0"
+           color="255,140,0"
+           vClass="bus"/>
+
+    <!-- ── Truck ──────────────────────────────────────────────────────── -->
+    <vType id="truck"
+           length="10"
+           maxSpeed="10"
+           accel="1.0"
+           decel="3.0"
+           sigma="0.4"
+           speedFactor="normc(1,0.1,0.2,2)"
+           jmIgnoreFoeProb="0"
+           jmIgnoreJunction="0"
+           color="169,169,169"
+           vClass="truck"/>
+
+    <!-- ── Auto Rickshaw ─────────────────────────────────────────────── -->
+    <vType id="auto"
+           length="3"
+           maxSpeed="14"
+           accel="2.0"
+           decel="4.0"
+           sigma="0.5"
+           speedFactor="normc(1,0.1,0.2,2)"
+           jmIgnoreFoeProb="0"
+           jmIgnoreJunction="0"
+           color="50,205,50"
+           vClass="passenger"/>
+
+    <!-- ── Ambulance (emergency vehicle) ─────────────────────────────── -->
+    <vType id="ambulance"
+           length="6"
+           maxSpeed="20"
+           accel="3.0"
+           decel="5.0"
+           sigma="0.2"
+           speedFactor="normc(1,0.05,0.5,1.5)"
+           jmIgnoreFoeProb="0"
+           jmIgnoreJunction="0"
+           color="255,0,0"
+           vClass="emergency"
+           guiShape="emergency"/>
+
+</routes>
